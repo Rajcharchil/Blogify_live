@@ -8,10 +8,28 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { AlertCircle, Radio, MicOff, Mic, VideoOff, Video, Users, Square, Copy, CheckCheck } from 'lucide-react';
 
-const ICE_SERVERS = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-];
+const ICE_SERVERS = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    {
+      urls: 'turn:openrelay.metered.ca:80',
+      username: 'openrelayproject',
+      credential: 'openrelayproject',
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443',
+      username: 'openrelayproject',
+      credential: 'openrelayproject',
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+      username: 'openrelayproject',
+      credential: 'openrelayproject',
+    },
+  ],
+};
 
 export default function GoLivePage() {
   const params = useParams();
@@ -47,10 +65,14 @@ export default function GoLivePage() {
   const startCamera = useCallback(async () => {
     setCameraError('');
     try {
-      const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      localStreamRef.current = media;
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { width: 1280, height: 720 }, 
+        audio: true 
+      });
+      localStreamRef.current = stream;
       if (localVideoRef.current) {
-        localVideoRef.current.srcObject = media;
+        localVideoRef.current.srcObject = stream;
+        localVideoRef.current.muted = true;
       }
     } catch (err: any) {
       setCameraError(err.message || 'Could not access camera. Please allow camera permissions.');
@@ -68,7 +90,7 @@ export default function GoLivePage() {
   const createPeerForViewer = useCallback(async (viewerId: string) => {
     if (peersRef.current.has(viewerId)) return;
     
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    const pc = new RTCPeerConnection(ICE_SERVERS);
     peersRef.current.set(viewerId, pc);
 
     // Add all local tracks
@@ -77,8 +99,8 @@ export default function GoLivePage() {
     });
 
     // ICE candidates
-    pc.onicecandidate = (e) => {
-      if (e.candidate) {
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
         fetch(`/api/streams/${streamId}/signal`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -86,7 +108,7 @@ export default function GoLivePage() {
             type: 'ice-candidate',
             fromId: myId.current,
             toId: viewerId,
-            payload: e.candidate,
+            payload: event.candidate,
           }),
         });
       }
@@ -99,7 +121,10 @@ export default function GoLivePage() {
     };
 
     // Create offer
-    const offer = await pc.createOffer();
+    const offer = await pc.createOffer({
+      offerToReceiveAudio: false,
+      offerToReceiveVideo: false,
+    });
     await pc.setLocalDescription(offer);
 
     await fetch(`/api/streams/${streamId}/signal`, {
@@ -109,7 +134,7 @@ export default function GoLivePage() {
         type: 'offer',
         fromId: myId.current,
         toId: viewerId,
-        payload: offer,
+        payload: { sdp: offer.sdp, type: offer.type },
       }),
     });
   }, [streamId]);
@@ -130,7 +155,7 @@ export default function GoLivePage() {
           await createPeerForViewer(sig.fromId);
         }
 
-        if (sig.type === 'answer') {
+        if (sig.type === 'answer' && sig.toId === myId.current) {
           const pc = peersRef.current.get(sig.fromId);
           if (pc && pc.signalingState !== 'stable') {
             await pc.setRemoteDescription(new RTCSessionDescription(sig.payload));

@@ -9,14 +9,49 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { AlertCircle, Send, Users, Eye, Radio, Volume2, VolumeX, Square } from 'lucide-react';
 
-const ICE_SERVERS = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-];
+const ICE_SERVERS = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    {
+      urls: 'turn:openrelay.metered.ca:80',
+      username: 'openrelayproject',
+      credential: 'openrelayproject',
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443',
+      username: 'openrelayproject',
+      credential: 'openrelayproject',
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+      username: 'openrelayproject',
+      credential: 'openrelayproject',
+    },
+  ],
+};
 
 function generateViewerId() {
   return `viewer-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
 }
+
+const safePlay = async (videoEl: HTMLVideoElement) => {
+  try {
+    videoEl.pause();
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const playPromise = videoEl.play();
+    if (playPromise !== undefined) {
+      await playPromise;
+    }
+  } catch (err: any) {
+    if (err.name === 'AbortError' || err.name === 'NotAllowedError') {
+      console.log('Autoplay blocked, user interaction needed');
+    } else {
+      console.error('Play error:', err);
+    }
+  }
+};
 
 export default function StreamViewerPage() {
   const params = useParams();
@@ -30,8 +65,9 @@ export default function StreamViewerPage() {
   const [isLive, setIsLive] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
   const [streamEnded, setStreamEnded] = useState(false);
-  const [hasVideo, setHasVideo] = useState(false);
-  const [muted, setMuted] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectionFailed, setConnectionFailed] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [chatError, setChatError] = useState('');
 
@@ -60,35 +96,64 @@ export default function StreamViewerPage() {
   const createPeerConnection = useCallback(() => {
     if (pcRef.current) pcRef.current.close();
 
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    const pc = new RTCPeerConnection(ICE_SERVERS);
     pcRef.current = pc;
 
-    pc.ontrack = (e) => {
-      if (remoteVideoRef.current && e.streams[0]) {
-        remoteVideoRef.current.srcObject = e.streams[0];
-        setHasVideo(true);
+    pc.ontrack = (event) => {
+      console.log('Got remote track:', event.track.kind, event.streams);
+      
+      if (!remoteVideoRef.current) return;
+      
+      const videoEl = remoteVideoRef.current;
+      
+      if (event.streams && event.streams[0]) {
+        // Only set srcObject if it changed
+        if (videoEl.srcObject !== event.streams[0]) {
+          videoEl.srcObject = event.streams[0];
+          videoEl.muted = true;
+          
+          // Wait for loadedmetadata before playing
+          videoEl.onloadedmetadata = () => {
+            safePlay(videoEl);
+          };
+          
+          // Fallback if metadata already loaded
+          if (videoEl.readyState >= 2) {
+            safePlay(videoEl);
+          }
+        }
+        setIsConnected(true);
       }
     };
 
-    pc.onicecandidate = (e) => {
-      if (e.candidate) {
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
         fetch(`/api/streams/${streamId}/signal`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'ice-candidate',
+            payload: event.candidate,
             fromId: viewerIdRef.current,
             toId: 'broadcaster',
-            payload: e.candidate,
           }),
         });
       }
     };
 
+    pc.oniceconnectionstatechange = () => {
+      console.log('ICE state:', pc.iceConnectionState);
+    };
+
     pc.onconnectionstatechange = () => {
-      if (pc.connectionState === 'connected') setHasVideo(true);
-      if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-        setHasVideo(false);
+      console.log('Connection state:', pc.connectionState);
+      if (pc.connectionState === 'connected') {
+        setIsConnected(true);
+        console.log('WebRTC connected successfully!');
+      }
+      if (pc.connectionState === 'failed') {
+        console.log('Connection failed, retrying ICE...');
+        pc.restartIce();
       }
     };
 
@@ -114,7 +179,7 @@ export default function StreamViewerPage() {
         if (sig.type === 'stream-ended') {
           setIsLive(false);
           setStreamEnded(true);
-          setHasVideo(false);
+          setIsConnected(false);
           pcRef.current?.close();
         }
 
@@ -130,8 +195,8 @@ export default function StreamViewerPage() {
             body: JSON.stringify({
               type: 'answer',
               fromId: viewerIdRef.current,
-              toId: sig.fromId,
-              payload: answer,
+              toId: 'broadcaster',
+              payload: { sdp: answer.sdp, type: answer.type },
             }),
           });
         }
@@ -254,28 +319,50 @@ export default function StreamViewerPage() {
                   ref={remoteVideoRef}
                   autoPlay
                   playsInline
-                  muted={muted}
-                  className={`w-full h-full object-cover transition-opacity duration-300 ${hasVideo ? 'opacity-100' : 'opacity-0'}`}
+                  muted
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    objectFit: 'cover',
+                    background: '#000'
+                  }}
+                  className={`w-full h-full transition-opacity duration-300 ${isConnected ? 'opacity-100' : 'opacity-0'}`}
+                  onLoadedMetadata={(e) => {
+                    const video = e.currentTarget;
+                    video.muted = true;
+                    safePlay(video);
+                  }}
+                  onError={(e) => {
+                    console.error('Video error:', e);
+                  }}
                 />
 
                 {/* Overlay when no video */}
-                {!hasVideo && (
+                {!isConnected && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center p-8">
                     {streamEnded ? (
                       <>
                         <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center">
                           <Square className="w-8 h-8 text-slate-400" />
                         </div>
-                        <p className="text-white text-xl font-semibold">Stream Ended</p>
+                        <p className="text-white text-xl font-semibold">Stream has ended</p>
                         <p className="text-slate-400">This stream has ended. Check back later!</p>
+                      </>
+                    ) : connectionFailed ? (
+                      <>
+                        <div className="w-16 h-16 rounded-full bg-red-900/50 flex items-center justify-center">
+                          <AlertCircle className="w-8 h-8 text-red-500" />
+                        </div>
+                        <p className="text-white text-xl font-semibold">Connection Failed</p>
+                        <p className="text-slate-400">Could not connect to the broadcaster.</p>
                       </>
                     ) : isLive ? (
                       <>
                         <div className="w-16 h-16 rounded-full bg-red-600/20 border-2 border-red-500/50 flex items-center justify-center animate-pulse">
                           <Radio className="w-8 h-8 text-red-400" />
                         </div>
-                        <p className="text-white text-xl font-semibold">Stream is Live</p>
-                        <p className="text-slate-400">Connecting to broadcast...</p>
+                        <p className="text-white text-xl font-semibold">Connecting...</p>
+                        <p className="text-slate-400">Establishing peer connection...</p>
                         <div className="w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
                       </>
                     ) : (
@@ -283,7 +370,7 @@ export default function StreamViewerPage() {
                         <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center">
                           <Radio className="w-8 h-8 text-slate-500" />
                         </div>
-                        <p className="text-white text-xl font-semibold">Stream Not Started</p>
+                        <p className="text-white text-xl font-semibold">Waiting for broadcaster...</p>
                         <p className="text-slate-400">The broadcaster hasn't gone live yet. Stay tuned!</p>
                         {isCreator && (
                           <Link href={`/go-live/${streamId}`}>
@@ -312,13 +399,37 @@ export default function StreamViewerPage() {
                 )}
 
                 {/* Mute button */}
-                {hasVideo && (
-                  <button
-                    onClick={() => setMuted(!muted)}
-                    className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
-                  >
-                    {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                  </button>
+                {isConnected && (
+                  <div style={{ 
+                    position: 'absolute', 
+                    bottom: '16px', 
+                    right: '16px',
+                    zIndex: 10 
+                  }}>
+                    <button
+                      onClick={() => {
+                        if (remoteVideoRef.current) {
+                          remoteVideoRef.current.muted = !isMuted;
+                          setIsMuted(!isMuted);
+                        }
+                      }}
+                      style={{
+                        background: 'rgba(0,0,0,0.7)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: '50%',
+                        width: '44px',
+                        height: '44px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        color: '#fff',
+                        fontSize: '18px',
+                      }}
+                    >
+                      {isMuted ? '🔇' : '🔊'}
+                    </button>
+                  </div>
                 )}
               </div>
             </Card>

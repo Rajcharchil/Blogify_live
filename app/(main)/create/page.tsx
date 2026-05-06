@@ -133,6 +133,16 @@ export default function CreatePage() {
     }
   };
 
+  const insertMarkdown = (before: string, after: string = '') => {
+    const textarea = document.getElementById('content') as HTMLTextAreaElement;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = content.substring(start, end);
+    const newText = content.substring(0, start) + before + selected + after + content.substring(end);
+    setContent(newText);
+  };
+
   const handlePublish = async () => {
     if (!title.trim() || !content.trim()) {
       setError('Title and content are required');
@@ -265,7 +275,46 @@ export default function CreatePage() {
               </TabsList>
 
               <TabsContent value="editor" className="mt-0">
+                <div style={{
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '10px',
+                  padding: '8px',
+                  display: 'flex',
+                  gap: '6px',
+                  marginBottom: '8px'
+                }}>
+                  {[
+                    { label: 'B', before: '**', after: '**', title: 'Bold' },
+                    { label: 'I', before: '_', after: '_', title: 'Italic' },
+                    { label: 'H', before: '## ', after: '', title: 'Heading' },
+                    { label: '-', before: '- ', after: '', title: 'List' },
+                    { label: '</>', before: '\`', after: '\`', title: 'Code' }
+                  ].map(btn => (
+                    <button
+                      key={btn.label}
+                      type="button"
+                      onClick={() => insertMarkdown(btn.before, btn.after)}
+                      title={btn.title}
+                      style={{
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        color: 'rgba(255,255,255,0.7)',
+                        borderRadius: '6px',
+                        padding: '6px 12px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: 500
+                      }}
+                      onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                      onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                    >
+                      {btn.label}
+                    </button>
+                  ))}
+                </div>
                 <textarea
+                  id="content"
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Tell your story here... Markdown is supported and celebrated."

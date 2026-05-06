@@ -86,17 +86,26 @@ export default function ProfilePage() {
         {/* Avatar + Info row */}
         <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-14 mb-6">
           {/* Avatar */}
-          {profile.avatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
+          {profile?.avatar ? (
             <img
               src={profile.avatar}
               alt={profile.username}
-              className="w-24 h-24 rounded-2xl border-4 border-slate-900 shrink-0 object-cover"
-              style={{ boxShadow: '0 0 0 2px rgba(16,185,129,0.5), 0 0 20px rgba(16,185,129,0.15)' }}
+              style={{
+                width: '96px', height: '96px',
+                borderRadius: '50%', objectFit: 'cover',
+                border: '3px solid rgba(16,185,129,0.5)',
+                boxShadow: '0 0 20px rgba(16,185,129,0.2)'
+              }}
             />
           ) : (
-            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-4xl font-bold border-4 border-slate-900 shrink-0">
-              {profile.username[0].toUpperCase()}
+            <div style={{
+              width: '96px', height: '96px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, #10b981, #14b8a6)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '36px', fontWeight: '700', color: '#fff',
+              border: '3px solid rgba(16,185,129,0.3)'
+            }}>
+              {profile?.username?.charAt(0).toUpperCase()}
             </div>
           )}
 

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Radio, Flame, Plus, LayoutDashboard, LogOut, User } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
   DropdownMenu,
@@ -16,7 +17,9 @@ import {
 
 export default function Header() {
   const { user, logout, isAuthenticated } = useAuth();
+  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -89,10 +92,24 @@ export default function Header() {
                       className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 border border-white/10 flex items-center justify-center text-white text-sm font-bold cursor-pointer hover:border-cyan-500/50 transition-all overflow-hidden ring-2 ring-transparent hover:ring-cyan-500/20 focus:outline-none focus:ring-cyan-500/30 focus:ring-4"
                     >
                       {user?.avatar ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
+                        <img
+                          src={user.avatar}
+                          alt={user.username}
+                          style={{
+                            width: '34px', height: '34px',
+                            borderRadius: '50%', objectFit: 'cover',
+                            border: '2px solid rgba(16,185,129,0.5)'
+                          }}
+                        />
                       ) : (
-                        (user?.username || 'U')[0].toUpperCase()
+                        <div style={{
+                          width: '34px', height: '34px', borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #10b981, #14b8a6)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '13px', fontWeight: '600', color: '#fff'
+                        }}>
+                          {user?.username?.charAt(0).toUpperCase()}
+                        </div>
                       )}
                     </button>
                   </DropdownMenuTrigger>
@@ -153,8 +170,57 @@ export default function Header() {
               </Link>
             </div>
           )}
+
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            style={{
+              display: 'flex', flexDirection: 'column', gap: '5px',
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: '8px'
+            }}
+            className="lg:hidden"
+          >
+            <span style={{width:'22px',height:'2px',background:'#fff',borderRadius:'2px',
+              transition:'all 0.3s',
+              transform: mobileOpen ? 'rotate(45deg) translate(5px,5px)' : 'none'}} />
+            <span style={{width:'22px',height:'2px',background:'#fff',borderRadius:'2px',
+              opacity: mobileOpen ? 0 : 1, transition:'all 0.3s'}} />
+            <span style={{width:'22px',height:'2px',background:'#fff',borderRadius:'2px',
+              transition:'all 0.3s',
+              transform: mobileOpen ? 'rotate(-45deg) translate(5px,-5px)' : 'none'}} />
+          </button>
         </div>
       </div>
+
+      {mobileOpen && (
+        <div style={{
+          position:'absolute', top:'100%', left:0, right:0,
+          background:'rgba(10,10,15,0.97)',
+          borderBottom:'1px solid rgba(255,255,255,0.08)',
+          backdropFilter:'blur(20px)',
+          padding:'16px',
+          display:'flex', flexDirection:'column', gap:'4px'
+        }}
+        className="lg:hidden"
+        >
+          <Link href="/" style={{padding: '12px 16px', borderRadius: '10px', color: 'rgba(255,255,255,0.7)', fontSize: '15px', fontWeight: 500}}>Home</Link>
+          <Link href="/blog" style={{padding: '12px 16px', borderRadius: '10px', color: 'rgba(255,255,255,0.7)', fontSize: '15px', fontWeight: 500}}>Explore</Link>
+          <Link href="/streams" style={{padding: '12px 16px', borderRadius: '10px', color: 'rgba(255,255,255,0.7)', fontSize: '15px', fontWeight: 500}}>Live</Link>
+          {isAuthenticated && (
+            <>
+              <Link href="/dashboard" style={{padding: '12px 16px', borderRadius: '10px', color: 'rgba(255,255,255,0.7)', fontSize: '15px', fontWeight: 500}}>Dashboard</Link>
+              <Link href="/create" style={{padding: '12px 16px', borderRadius: '10px', color: 'rgba(255,255,255,0.7)', fontSize: '15px', fontWeight: 500}}>Write</Link>
+              <Link href="/create-stream" style={{padding: '12px 16px', borderRadius: '10px', color: 'rgba(255,255,255,0.7)', fontSize: '15px', fontWeight: 500}}>Go Live</Link>
+              <button 
+                onClick={() => { logout(); router.push('/login'); }} 
+                style={{padding: '12px 16px', borderRadius: '10px', color: '#ef4444', fontSize: '15px', fontWeight: 500, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer'}}
+              >
+                Logout
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </header>
   );
 }

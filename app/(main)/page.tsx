@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { 
   Zap, 
@@ -22,6 +23,12 @@ export default function HomePage() {
   const { isAuthenticated, user } = useAuth();
   const [blogs, setBlogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  if (!isAuthenticated && !loading) {
+    router.push('/index');
+    return null;
+  }
 
   useEffect(() => {
     fetch('/api/blogs?published=true')

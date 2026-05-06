@@ -15,8 +15,11 @@ export default function BlogListPage() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    fetchBlogs();
-  }, []);
+    const timer = setTimeout(() => {
+      fetchBlogs(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const fetchBlogs = async (q = '') => {
     setLoading(true);

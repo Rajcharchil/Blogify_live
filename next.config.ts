@@ -1,18 +1,15 @@
-import type { NextConfig } from 'next'
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   images: {
-    unoptimized: true,
+    domains: [
+      'lh3.googleusercontent.com',
+      'avatars.githubusercontent.com',
+      'googleusercontent.com',
+      'github.com',
+    ],
   },
-  /**
-   * Next.js 16 uses Turbopack by default.
-   * Defining a custom `webpack()` forces webpack mode in dev/build.
-   */
-  webpack: (config) => config,
-}
+  webpack: (config: any) => config,
+};
 
-export default nextConfig
-
+export default nextConfig;

@@ -33,27 +33,42 @@ export default function CreateStreamPage() {
     );
   }
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) { setError('Stream title is required'); return; }
+    if (!user) return;
+    
     setLoading(true);
     setError('');
+    
     try {
-      const res = await fetch('/api/streams', {
+      // Get fresh token from localStorage
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch('/api/streams', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ title, description }),
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim(),
+          authorId: user.id,
+          authorUsername: user.username,
+        }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to create stream');
-      // Go directly to the broadcaster studio
-      router.push(`/go-live/${data.id}`);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to create stream');
+        setLoading(false);
+        return;
+      }
+
+      router.push(`/go-live/${data.stream.id}`);
+    } catch (err) {
+      setError('Something went wrong. Please try again.');
       setLoading(false);
     }
   };
@@ -93,7 +108,7 @@ export default function CreateStreamPage() {
             </div>
           )}
 
-          <form onSubmit={handleCreate} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-200 mb-2">
                 Stream Title <span className="text-red-400">*</span>

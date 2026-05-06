@@ -12,27 +12,46 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = requireAuth(request);
-    const { title, description } = await request.json();
-    if (!title) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+    const body = await request.json();
+    const { title, description, authorId, authorUsername } = body;
 
-    const user = store.users.get(auth.id);
+    if (!authorId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Find user in store
+    const user = store.users.get(authorId);
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found - please logout and login again' },
+        { status: 404 }
+      );
+    }
+
     const id = generateId();
     const stream = {
       id,
-      title,
+      title: title || 'Untitled Stream',
       description: description || '',
-      authorId: auth.id,
-      authorUsername: user?.username || auth.username || 'anonymous',
-      status: 'scheduled',
+      authorId: user.id,
+      authorUsername: user.username,
+      status: 'offline',
       viewerCount: 0,
       createdAt: new Date().toISOString(),
     };
+
     store.streams.set(id, stream);
     saveStreams();
-    return NextResponse.json({ ...stream, author: { id: auth.id, username: stream.authorUsername } }, { status: 201 });
+
+    return NextResponse.json({ stream }, { status: 201 });
   } catch (error) {
-    if ((error as any)?.status === 401) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: 'Failed to create stream' }, { status: 500 });
+    console.error('Stream create error:', error);
+    return NextResponse.json(
+      { error: 'Failed to create stream' },
+      { status: 500 }
+    );
   }
 }

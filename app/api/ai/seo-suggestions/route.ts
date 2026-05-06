@@ -1,42 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { generateText } from 'ai';
+import { createGroq } from '@ai-sdk/groq';
+
+const groq = createGroq({
+  apiKey: process.env.GROQ_API_KEY,
+});
 
 export async function POST(request: NextRequest) {
   try {
     const { title, content } = await request.json();
     if (!title) return NextResponse.json({ error: 'Title required' }, { status: 400 });
     
-    await new Promise(r => setTimeout(r, 500));
-    
-    // Extract keywords from title and content
-    const words = `${title} ${content || ''}`.toLowerCase()
-      .replace(/[^a-z0-9\s]/g, ' ')
-      .split(/\s+/)
-      .filter(w => w.length > 4)
-      .filter(w => !['about', 'after', 'before', 'their', 'there', 'these', 'those', 'which', 'would', 'could', 'should', 'have', 'been', 'with', 'from', 'that', 'this', 'will', 'your', 'what', 'when', 'where', 'while'].includes(w));
-    
-    const wordFreq: Record<string, number> = {};
-    words.forEach(w => { wordFreq[w] = (wordFreq[w] || 0) + 1; });
-    
-    const keywords = Object.entries(wordFreq)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(([word]) => word);
-    
-    const improvedTitle = title.length < 50 
-      ? `${title}: A Complete Guide for 2025`
-      : title;
-    
-    const metaDescription = content 
-      ? content.replace(/[#*`]/g, '').substring(0, 155).trim() + '...'
-      : `Learn everything about ${title} in this comprehensive guide.`;
-    
-    return NextResponse.json({
-      improvedTitle,
-      metaDescription,
-      keywords,
-      seoScore: Math.floor(Math.random() * 20) + 75,
+    if (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY === 'your_groq_api_key_here') {
+      // Fallback
+      return NextResponse.json({
+        improvedTitle: title.length < 50 ? `${title}: A Complete Guide` : title,
+        metaDescription: content ? content.replace(/[#*`]/g, '').substring(0, 155).trim() + '...' : `Learn everything about ${title} in this comprehensive guide.`,
+        keywords: ['blogify', 'guide', 'tips', 'content'],
+        seoScore: 85,
+      });
+    }
+
+    const prompt = `Analyze the following blog post title and content to provide SEO suggestions.
+Title: "${title}"
+Content: "${content || 'No content yet'}"
+
+Return ONLY a valid JSON object with the following structure, no markdown blocks, no extra text:
+{
+  "improvedTitle": "A more catchy and SEO-friendly version of the title",
+  "metaDescription": "A compelling meta description (max 160 chars)",
+  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"],
+  "seoScore": 85
+}
+`;
+
+    const { text } = await generateText({
+      model: groq('llama-3.3-70b-versatile'),
+      prompt,
+      maxTokens: 500,
     });
+
+    // Parse JSON safely
+    let result;
+    try {
+      const jsonStr = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+      result = JSON.parse(jsonStr);
+    } catch (e) {
+      console.error('Failed to parse SEO JSON', text);
+      return NextResponse.json({ error: 'Failed to parse AI response' }, { status: 500 });
+    }
+
+    return NextResponse.json(result);
   } catch (error) {
+    console.error('AI SEO error:', error);
     return NextResponse.json({ error: 'Failed to generate SEO suggestions' }, { status: 500 });
   }
 }

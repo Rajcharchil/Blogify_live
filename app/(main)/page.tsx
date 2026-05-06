@@ -20,15 +20,16 @@ import {
 } from 'lucide-react';
 
 export default function HomePage() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading: authLoading } = useAuth();
   const [blogs, setBlogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  if (!isAuthenticated && !loading) {
-    router.push('/index');
-    return null;
-  }
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/index');
+    }
+  }, [isAuthenticated, authLoading, router]);
 
   useEffect(() => {
     fetch('/api/blogs?published=true')

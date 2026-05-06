@@ -69,9 +69,10 @@ export default function Header() {
                 </Button>
               </Link>
               
-              <Link href="/create">
-                <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-90 text-white border-0 shadow-lg shadow-emerald-500/20 rounded-full px-5 h-10 text-xs font-bold gap-2">
-                  <Plus className="w-4 h-4" /> WRITE
+              <Link href="/create" className="group relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full blur opacity-30 group-hover:opacity-70 transition duration-500 animate-pulse"></div>
+                <Button size="sm" className="relative bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-0 shadow-lg rounded-full px-5 h-10 text-xs font-bold gap-2 transition-all duration-300 hover:-translate-y-0.5 hover:scale-105 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+                  <Plus className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" /> WRITE
                 </Button>
               </Link>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -25,13 +25,14 @@ export default function CreatePage() {
   const [showPreview, setShowPreview] = useState(false);
   const [category, setCategory] = useState('tech');
 
-  if (authLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, authLoading, router]);
 
-  if (!isAuthenticated) {
-    router.push('/login');
-    return null;
+  if (authLoading || !isAuthenticated) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
   const generateDraft = async () => {

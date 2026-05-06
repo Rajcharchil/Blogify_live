@@ -13,9 +13,18 @@ export async function POST(request: NextRequest) {
     let existingUser = store.users.get(uid);
 
     if (existingUser) {
-      if (photoURL) {
-        // Always sync the latest avatar from Google/GitHub on every login
+      const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(existingUser.username)}`;
+      let updated = false;
+
+      if (photoURL && existingUser.avatar !== photoURL) {
         existingUser.avatar = photoURL;
+        updated = true;
+      } else if (!existingUser.avatar) {
+        existingUser.avatar = defaultAvatar;
+        updated = true;
+      }
+
+      if (updated) {
         store.users.set(uid, existingUser);
         store.usersByEmail.set(email.toLowerCase(), existingUser);
         saveUsers();
@@ -43,13 +52,15 @@ export async function POST(request: NextRequest) {
     }
     finalUsername = usernameCandidate;
 
+    const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(finalUsername)}`;
+
     const newUser = {
       id: uid,
       email: email.toLowerCase(),
       username: finalUsername,
       fullName: fullName || displayName || finalUsername,
       password: '',
-      avatar: photoURL || undefined,
+      avatar: photoURL || defaultAvatar,
       createdAt: new Date().toISOString(),
     };
 

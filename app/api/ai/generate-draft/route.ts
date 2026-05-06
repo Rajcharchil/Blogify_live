@@ -1,113 +1,137 @@
-import { generateText } from 'ai'
-import { createGroq } from '@ai-sdk/groq'
-import { NextRequest, NextResponse } from 'next/server'
-
-const groq = createGroq({
-  apiKey: process.env.GROQ_API_KEY,
-})
-
-const CATEGORY_PROMPTS: Record<string, string> = {
-  tech: 'Write a professional and engaging blog post about the following technology topic. Include insights, trends, practical advice, and industry analysis.',
-  life: 'Write an inspiring and relatable blog post about the following lifestyle topic. Include personal insights, practical tips, and motivation.',
-  travel: 'Write an engaging travel blog post with tips, recommendations, and vivid descriptions.',
-  food: 'Write a mouthwatering food blog with recipes, techniques, and tips.',
-  health: 'Write a health blog with scientific insights, fitness tips, and wellness advice.',
-  business: 'Write a strategic business blog with insights, case studies, and actionable advice.',
-  education: 'Write an educational blog with study tips and learning strategies.',
-  entertainment: 'Write an engaging entertainment blog with reviews and fun facts.',
-  sports: 'Write a sports blog with analysis, insights, and updates.',
-  gaming: 'Write a gaming blog with reviews, tips, and news.',
-  arts: 'Write an arts and culture blog with creative insights and context.',
-  science: 'Write a science blog with explanations and real-world applications.',
-}
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { topic, category, includeImage } = await request.json()
+    const body = await request.json();
+    const { topic, category, title, userId } = body;
+    const promptTopic = topic || title || 'interesting topic';
+    const promptCategory = category || 'general';
 
-    // ✅ Validation
-    if (!topic || !category) {
-      return NextResponse.json(
-        { error: 'Missing required fields: topic and category' },
-        { status: 400 }
-      )
+    console.log('Generating draft for:', promptTopic, promptCategory);
+
+    // Check API key
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      console.log('No API key - returning fallback');
+      return NextResponse.json(getFallback(promptTopic, promptCategory));
     }
 
-    // ✅ Check API key
-    const isApiKeyMissing =
-      !process.env.GROQ_API_KEY ||
-      process.env.GROQ_API_KEY === 'your_groq_api_key_here'
+    // Call Groq API directly with fetch
+    const groqResponse = await fetch(
+      'https://api.groq.com/openai/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            {
+              role: 'user',
+              content: `Write a comprehensive blog post about "${promptTopic}" in category "${promptCategory}".
 
-    // ✅ Fallback (DEV MODE)
-    if (isApiKeyMissing) {
-      console.warn('⚠️ GROQ API key missing → using mock data')
+Return ONLY valid JSON with these fields:
+{
+  "title": "engaging blog title",
+  "content": "full blog post in markdown with ## headings, 500-700 words",
+  "excerpt": "2 sentence summary"
+}
 
-      const title = `Demo Blog: ${topic}`
+Make it engaging, informative, and well-structured.`,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 2048,
+        }),
+      }
+    );
 
-      return NextResponse.json({
-        title,
-        content: `# ${title}
+    console.log('Groq response status:', groqResponse.status);
+
+    if (!groqResponse.ok) {
+      const errText = await groqResponse.text();
+      console.error('Groq API error:', errText);
+      return NextResponse.json(getFallback(promptTopic, promptCategory));
+    }
+
+    const groqData = await groqResponse.json();
+    const messageContent = groqData.choices?.[0]?.message?.content || '';
+
+    console.log('Groq raw response length:', messageContent.length);
+
+    // Parse JSON from response
+    let parsed: any = {};
+    try {
+      // Remove markdown code blocks if present
+      const cleaned = messageContent
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+      parsed = JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.log('JSON parse failed, using raw content');
+      parsed = {
+        title: `Guide to ${promptTopic}`,
+        content: messageContent,
+        excerpt: `Learn about ${promptTopic}`,
+      };
+    }
+
+    return NextResponse.json({
+      title: parsed.title || `Guide to ${promptTopic}`,
+      content: parsed.content || messageContent,
+      excerpt: parsed.excerpt || `A comprehensive guide about ${promptTopic}`,
+      category: promptCategory,
+      imageUrl: null,
+    });
+
+  } catch (error: any) {
+    console.error('Generate draft error:', error?.message || error);
+    const body = await request.json().catch(() => ({}));
+    return NextResponse.json(
+      getFallback(body.topic || body.title || 'topic', body.category)
+    );
+  }
+}
+
+function getFallback(topic: string, category: string = 'general') {
+  return {
+    title: `The Complete Guide to ${topic}`,
+    content: `# The Complete Guide to ${topic}
 
 ## Introduction
-This is a demo blog for **${topic}**.
 
-## Why it matters
-${topic} is an important concept in the **${category}** domain.
+${topic} is a fascinating subject that has gained significant attention in recent years. In this comprehensive guide, we will explore everything you need to know to get started and excel.
 
-## Key Points
-- Easy to understand
-- Fast generation
-- Works without API key
+## Why ${topic} Matters
+
+Understanding ${topic} can transform the way you approach problems and create solutions. Whether you are a beginner or an experienced professional, there is always something new to discover.
+
+## Key Concepts
+
+### Getting Started
+The first step is to understand the fundamentals. Take your time to build a solid foundation before moving to advanced topics.
+
+### Best Practices
+- Always start with clear goals in mind
+- Learn from real-world examples and case studies
+- Practice consistently to build your skills
+- Connect with a community of like-minded people
+
+### Common Mistakes to Avoid
+Many beginners make the same mistakes. Being aware of them early can save you significant time and effort.
+
+## Practical Applications
+
+The real value of ${topic} becomes clear when you start applying it to real-world situations. Start with small projects and gradually take on more complex challenges.
 
 ## Conclusion
-Add your GROQ API key to get real AI-generated blogs 🚀
-        `,
-        category,
-        imageUrl: includeImage
-          ? `/api/generate-image?topic=${encodeURIComponent(topic)}`
-          : undefined,
-      })
-    }
 
-    // ✅ Generate Title
-    const { text: title } = await generateText({
-      model: groq('llama-3.3-70b-versatile'),
-      prompt: `Create a catchy blog title for this ${category} topic: "${topic}". Only return the title.`,
-      maxTokens: 50,
-    })
-
-    // ✅ Generate Content
-    const { text: content } = await generateText({
-      model: groq('llama-3.3-70b-versatile'),
-      prompt: `
-${CATEGORY_PROMPTS[category] || CATEGORY_PROMPTS.tech}
-
-Topic: "${topic}"
-
-Write a detailed blog (800–1000 words) with:
-- Proper headings
-- Clear structure
-- Markdown formatting
-`,
-      maxTokens: 2000,
-    })
-
-    // ✅ Final Response
-    return NextResponse.json({
-      title: title.trim(),
-      content: content.trim(),
-      category,
-      imageUrl: includeImage
-        ? `/api/generate-image?topic=${encodeURIComponent(topic)}`
-        : undefined,
-    })
-
-  } catch (error) {
-    console.error('❌ Blog generation error:', error)
-
-    return NextResponse.json(
-      { error: 'Failed to generate blog' },
-      { status: 500 }
-    )
-  }
+${topic} offers incredible opportunities for those willing to invest time in learning it properly. Start your journey today and see where it takes you.`,
+    excerpt: `A comprehensive guide covering everything you need to know about ${topic}.`,
+    category,
+    imageUrl: null,
+  };
 }

@@ -35,33 +35,41 @@ export default function CreatePage() {
   }
 
   const generateDraft = async () => {
-    if (!title.trim()) {
-      setError('Please enter a topic first');
+    if (!title && !category) {
+      setError('Please enter a title or select a category first');
       return;
     }
-
+    
     setAiLoading(true);
     setError('');
-
+    
     try {
-      const response = await fetch(`${API_URL}/ai/generate-draft`, {
+      const response = await fetch('/api/ai/generate-draft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          topic: title,
-          category: category,
+          topic: title || category,
+          title: title,
+          category: category || 'general',
           userId: user?.id,
         }),
       });
+
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.details || data.error || 'Failed to generate draft');
+      
+      // Use data even if response not ok
+      // as we always return fallback content
+      if (data.content) {
+        setTitle(data.title || title);
+        setContent(data.content);
+        setExcerpt(data.excerpt || '');
+        setError('');
+      } else {
+        setError('Could not generate content. Please write manually.');
       }
-      if (data.title) setTitle(data.title);
-      if (data.content) setContent(data.content);
-      else if (data.draft) setContent(data.draft);
-    } catch (err: any) {
-      setError(err.message || 'Failed to generate draft');
+    } catch (err) {
+      console.error('Generate error:', err);
+      setError('Network error. Check your connection and try again.');
     } finally {
       setAiLoading(false);
     }

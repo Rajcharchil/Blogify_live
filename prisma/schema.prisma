@@ -1,0 +1,384 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model with roles
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  username      String    @unique
+  password      String
+  fullName      String?
+  avatar        String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  blogs         Blog[]
+  comments      BlogComment[]
+  likes         ContentLike[]
+  followers     UserFollower[] @relation("Following")
+  following     UserFollower[] @relation("Follower")
+  streams       LiveStream[]
+  streamViewers StreamViewer[]
+  chatMessages  StreamChat[]
+  aiGenerations AIContentGeneration[]
+  notifications Notification[]
+  analytics     UserAnalytics?
+
+  // Followers count (computed)
+  followersCount  Int @default(0)
+  followingCount  Int @default(0)
+}
+
+enum Role {
+  USER
+  CREATOR
+  ADMIN
+}
+
+// Blog post model
+model Blog {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  content     String   @db.Text
+  excerpt     String?
+  coverImage  String?
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  published   Boolean  @default(false)
+  viewCount   Int      @default(0)
+  
+  // SEO metadata
+  metaTitle       String?
+  metaDescription String?
+  keywords        String[]
+
+  // Timestamps
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  comments    BlogComment[]
+  likes       ContentLike[]
+  analytics   BlogAnalytics?
+
+  // Index for faster queries
+  @@index([authorId])
+  @@index([slug])
+  @@index([published])
+}
+
+// Blog comment model with nested replies
+model BlogComment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  blogId    String
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    BlogComment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   BlogComment[] @relation("CommentReplies")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([blogId])
+  @@index([parentId])
+}
+
+// Live stream model
+model LiveStream {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  thumbnail   String?
+  hlsUrl      String?
+  rtmpUrl     String?
+  streamKey   String?
+  status      StreamStatus @default(OFFLINE)
+  creatorId   String
+  creator     User        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  
+  // Recording
+  recordingUrl String?
+  recordedAt   DateTime?
+
+  // Timestamps
+  startedAt    DateTime?
+  endedAt      DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  viewers      StreamViewer[]
+  chatMessages StreamChat[]
+  analytics    StreamAnalytics?
+
+  @@index([creatorId])
+  @@index([status])
+}
+
+enum StreamStatus {
+  OFFLINE
+  LIVE
+  ENDED
+}
+
+// Stream viewer tracking
+model StreamViewer {
+  id        String   @id @default(cuid())
+  streamId  String
+  stream    LiveStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  joinedAt  DateTime @default(now())
+  leftAt    DateTime?
+
+  @@unique([streamId, userId])
+  @@index([streamId])
+}
+
+// Real-time chat messages
+model StreamChat {
+  id        String   @id @default(cuid())
+  streamId  String
+  stream    LiveStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String   @db.Text
+  isFlagged Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([streamId])
+  @@index([userId])
+}
+
+// User follower/following relationships
+model UserFollower {
+  id          String   @id @default(cuid())
+  followerId  String
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+// Content like model (for blogs)
+model ContentLike {
+  id        String   @id @default(cuid())
+  blogId    String
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blogId, userId])
+  @@index([blogId])
+}
+
+// AI content generation history
+model AIContentGeneration {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        AIGenerationType
+  prompt      String   @db.Text
+  response    String   @db.Text
+  model       String
+  tokensUsed  Int?
+  generationId String? @unique
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum AIGenerationType {
+  DRAFT
+  IMPROVE
+  SEO_SUGGESTIONS
+  HEADLINES
+  TAGS
+  EMBEDDING
+}
+
+// Content moderation log
+model ModerationLog {
+  id          String           @id @default(cuid())
+  contentId   String
+  contentType ModerationContentType
+  category    ModerationCategory[]
+  confidence  Float
+  severity    Severity
+  result      ModerationResult
+  reviewerId  String?
+  reviewNote  String?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@index([contentId])
+  @@index([contentType])
+}
+
+enum ModerationContentType {
+  BLOG
+  COMMENT
+  CHAT
+}
+
+enum ModerationCategory {
+  SPAM
+  HATE_SPEECH
+  NSFW
+  HARASSMENT
+  VIOLENCE
+  MISINFORMATION
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ModerationResult {
+  FLAGGED
+  WARNED
+  SUSPENDED
+  REMOVED
+  APPROVED
+}
+
+// User analytics aggregation
+model UserAnalytics {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalViews      Int      @default(0)
+  totalLikes     Int      @default(0)
+  totalComments  Int      @default(0)
+  avgViewsPerDay  Float    @default(0)
+  engagementRate  Float    @default(0)
+  periodStart     DateTime
+  periodEnd       DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// Blog analytics
+model BlogAnalytics {
+  id            String   @id @default(cuid())
+  blogId        String   @unique
+  blog          Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  views         Int      @default(0)
+  uniqueViews   Int      @default(0)
+  avgReadTime   Float    @default(0)
+  bounceRate    Float    @default(0)
+  periodStart   DateTime
+  periodEnd     DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([blogId])
+}
+
+// Stream analytics
+model StreamAnalytics {
+  id              String   @id @default(cuid())
+  streamId        String   @unique
+  stream          LiveStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  peakViewers     Int      @default(0)
+  avgViewers      Float    @default(0)
+  totalChatMsgs   Int      @default(0)
+  avgEngagement   Float    @default(0)
+  periodStart     DateTime
+  periodEnd       DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([streamId])
+}
+
+// Content recommendations
+model Recommendation {
+  id          String   @id @default(cuid())
+  userId      String
+  contentId   String
+  contentType RecommendationType
+  score       Float
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, contentId, contentType])
+  @@index([userId])
+}
+
+enum RecommendationType {
+  BLOG
+  STREAM
+  USER
+}
+
+// User notifications
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([read])
+}
+
+enum NotificationType {
+  FOLLOW
+  LIKE
+  COMMENT
+  STREAM_START
+  STREAM_END
+  SYSTEM
+}
+
+// Subscription tiers for monetization
+model Subscription {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  tier            SubscriptionTier @default(FREE)
+  stripeCustomerId String?
+  stripeSubId    String?
+  expiresAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+}
+
+enum SubscriptionTier {
+  FREE
+  PRO
+  PREMIUM
+}
+

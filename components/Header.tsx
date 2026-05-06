@@ -1,0 +1,160 @@
+'use client';
+
+import Link from 'next/link';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Radio, Flame, Plus, LayoutDashboard, LogOut, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
+export default function Header() {
+  const { user, logout, isAuthenticated } = useAuth();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  return (
+    <header 
+      className={`sticky top-0 z-50 transition-all duration-300 ${
+        scrolled 
+          ? 'bg-slate-950/80 backdrop-blur-xl border-b border-white/5 py-3' 
+          : 'bg-transparent py-5'
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-6 flex items-center justify-between gap-8">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-3 font-bold text-2xl group transition-all">
+          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20 group-hover:scale-105 transition-transform">
+            <Flame className="text-white w-6 h-6" />
+          </div>
+          <span className="text-white tracking-tight hidden sm:block">
+            Blog<span className="text-cyan-400">ify</span>
+          </span>
+        </Link>
+
+        {/* Desktop Nav */}
+        <nav className="hidden lg:flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-2 py-1 backdrop-blur-md">
+          <Link href="/" className="px-5 py-2 text-slate-400 hover:text-white rounded-full text-sm font-medium transition-all hover:bg-white/5">Home</Link>
+          <Link href="/blog" className="px-5 py-2 text-slate-400 hover:text-white rounded-full text-sm font-medium transition-all hover:bg-white/5">Exlpore</Link>
+          <Link href="/streams" className="px-5 py-2 text-slate-400 hover:text-white rounded-full text-sm font-medium transition-all hover:bg-white/5 flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            </span>
+            Live
+          </Link>
+        </nav>
+
+        {/* Right side actions */}
+        <div className="flex items-center gap-4">
+          {isAuthenticated ? (
+            <div className="flex items-center gap-3">
+              <Link href="/create-stream" className="hidden md:block">
+                <Button size="sm" className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-full px-5 h-10 text-xs font-bold gap-2 transition-all">
+                  <Radio className="w-4 h-4" /> GO LIVE
+                </Button>
+              </Link>
+              
+              <Link href="/create">
+                <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-90 text-white border-0 shadow-lg shadow-emerald-500/20 rounded-full px-5 h-10 text-xs font-bold gap-2">
+                  <Plus className="w-4 h-4" /> WRITE
+                </Button>
+              </Link>
+
+              <div className="h-6 w-px bg-white/10 mx-1 hidden sm:block" />
+
+              <div className="flex items-center gap-2">
+                <Link href="/dashboard" className="hidden sm:block">
+                  <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white hover:bg-white/5 rounded-full w-10 h-10">
+                    <LayoutDashboard className="w-5 h-5" />
+                  </Button>
+                </Link>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="Open profile menu"
+                      className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 border border-white/10 flex items-center justify-center text-white text-sm font-bold cursor-pointer hover:border-cyan-500/50 transition-all overflow-hidden ring-2 ring-transparent hover:ring-cyan-500/20 focus:outline-none focus:ring-cyan-500/30 focus:ring-4"
+                    >
+                      {user?.avatar ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
+                      ) : (
+                        (user?.username || 'U')[0].toUpperCase()
+                      )}
+                    </button>
+                  </DropdownMenuTrigger>
+
+                  <DropdownMenuContent
+                    align="end"
+                    side="bottom"
+                    sideOffset={10}
+                    className="w-56 bg-slate-900/95 backdrop-blur-xl border border-white/10 text-white shadow-2xl rounded-2xl p-2"
+                  >
+                    <DropdownMenuLabel className="px-2 py-2">
+                      <div className="flex flex-col leading-tight">
+                        <span className="text-sm font-bold">{user?.username}</span>
+                        <span className="text-xs text-slate-400 font-medium">{user?.email}</span>
+                      </div>
+                    </DropdownMenuLabel>
+
+                    <DropdownMenuSeparator className="bg-white/10 my-1" />
+
+                    <DropdownMenuItem asChild className="rounded-xl">
+                      <Link href={`/profile/${user?.username}`} className="flex items-center">
+                        <User className="w-4 h-4" />
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem asChild className="rounded-xl">
+                      <Link href="/dashboard" className="flex items-center">
+                        <LayoutDashboard className="w-4 h-4" />
+                        Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator className="bg-white/10 my-1" />
+
+                    <DropdownMenuItem
+                      variant="destructive"
+                      className="rounded-xl"
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        logout();
+                      }}
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Link href="/login" className="text-slate-400 hover:text-white text-sm font-medium px-4">Login</Link>
+              <Link href="/register">
+                <Button className="bg-white text-slate-900 hover:bg-slate-200 rounded-full px-6 h-10 text-sm font-bold border-0 transition-all">
+                  Join Free
+                </Button>
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}

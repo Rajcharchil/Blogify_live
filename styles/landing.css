@@ -1,0 +1,514 @@
+/* ========================================
+   BLOGIFY LANDING PAGE - Premium Styles
+   ======================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Cal+Sans:wght@400;600&display=swap');
+
+/* Root */
+.blogify-root {
+  min-height: 100vh;
+  background: #03010d;
+  color: #e2e8f0;
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Background overlay gradient */
+.blogify-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background: 
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(124, 58, 237, 0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(6, 182, 212, 0.1) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 20% 80%, rgba(52, 211, 153, 0.08) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(3, 1, 13, 0.5) 0%, rgba(3, 1, 13, 0.85) 50%, #03010d 100%);
+  pointer-events: none;
+}
+
+/* ---- NAVBAR ---- */
+.blogify-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 20px 0;
+  transition: all 0.3s ease;
+}
+
+.blogify-nav-scrolled {
+  padding: 12px 0;
+  background: rgba(3, 1, 13, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.blogify-nav-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.blogify-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.blogify-logo-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.blogify-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.blogify-nav-link {
+  color: rgba(255,255,255,0.7);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.blogify-nav-link:hover { color: #fff; }
+
+.blogify-cta-btn {
+  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  color: #fff;
+  text-decoration: none;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.blogify-cta-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+/* ---- HERO ---- */
+.blogify-hero {
+  position: relative;
+  z-index: 10;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 120px 24px 80px;
+}
+
+.blogify-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(124, 58, 237, 0.15);
+  border: 1px solid rgba(124, 58, 237, 0.35);
+  color: #a78bfa;
+  padding: 6px 16px;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+  animation: fadeSlideUp 0.8s ease forwards;
+}
+
+.blogify-hero-title {
+  font-size: clamp(3rem, 8vw, 6rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: #fff;
+  margin-bottom: 24px;
+  max-width: 900px;
+  animation: fadeSlideUp 0.9s ease 0.1s both;
+}
+
+.blogify-gradient-text {
+  background: linear-gradient(135deg, #a78bfa 0%, #06b6d4 50%, #34d399 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.blogify-hero-subtitle {
+  font-size: clamp(1rem, 2.5vw, 1.3rem);
+  color: rgba(226, 232, 240, 0.65);
+  max-width: 600px;
+  line-height: 1.7;
+  margin-bottom: 48px;
+  font-weight: 400;
+  animation: fadeSlideUp 1s ease 0.2s both;
+}
+
+.blogify-hero-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+  animation: fadeSlideUp 1s ease 0.3s both;
+}
+
+.blogify-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
+  color: #fff;
+  text-decoration: none;
+  padding: 14px 32px;
+  border-radius: 9999px;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transition: all 0.25s ease;
+  box-shadow: 0 0 40px rgba(124, 58, 237, 0.4);
+}
+
+.blogify-primary-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 50px rgba(124, 58, 237, 0.6);
+}
+
+.blogify-primary-btn-lg {
+  padding: 18px 44px;
+  font-size: 1.1rem;
+}
+
+.blogify-ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.8);
+  text-decoration: none;
+  padding: 14px 32px;
+  border-radius: 9999px;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(10px);
+}
+
+.blogify-ghost-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+/* Scroll indicator */
+.blogify-scroll-indicator {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 38px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 6px;
+}
+
+.blogify-scroll-dot {
+  width: 4px;
+  height: 8px;
+  background: rgba(167, 139, 250, 0.8);
+  border-radius: 2px;
+  animation: scrollBounce 2s infinite;
+}
+
+/* ---- STATS ---- */
+.blogify-stats-section {
+  position: relative;
+  z-index: 10;
+  padding: 60px 24px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.02);
+  backdrop-filter: blur(10px);
+}
+
+.blogify-stats-grid {
+  max-width: 900px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .blogify-stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.blogify-stat-value {
+  font-size: 2.5rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #a78bfa, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.blogify-stat-label {
+  color: rgba(226,232,240,0.5);
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+/* ---- FEATURES ---- */
+.blogify-features-section {
+  position: relative;
+  z-index: 10;
+  padding: 100px 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.blogify-section-header {
+  text-align: center;
+  margin-bottom: 64px;
+}
+
+.blogify-section-eyebrow {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: #a78bfa;
+  margin-bottom: 12px;
+}
+
+.blogify-section-title {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: #fff;
+  line-height: 1.1;
+  margin-bottom: 16px;
+}
+
+.blogify-section-subtitle {
+  font-size: 1.1rem;
+  color: rgba(226,232,240,0.55);
+  max-width: 560px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+.blogify-features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .blogify-features-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .blogify-features-grid { grid-template-columns: 1fr; }
+}
+
+/* Glassmorphism Utilities */
+.blogify-glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+}
+
+.blogify-glass-hover:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Updated Feature Card */
+.blogify-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 32px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  animation: fadeSlideUp 0.7s ease both;
+}
+
+.blogify-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.04), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.blogify-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.07);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+
+.blogify-card:hover::before { opacity: 1; }
+
+.blogify-card-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.blogify-card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+
+.blogify-card-desc {
+  font-size: 0.9rem;
+  color: rgba(226,232,240,0.55);
+  line-height: 1.65;
+  margin-bottom: 20px;
+}
+
+.blogify-card-arrow {
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: all 0.25s ease;
+}
+
+.blogify-card:hover .blogify-card-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ---- CTA SECTION ---- */
+.blogify-cta-section {
+  position: relative;
+  z-index: 10;
+  padding: 120px 24px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.blogify-cta-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(124, 58, 237, 0.25) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.blogify-cta-content {
+  position: relative;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.blogify-cta-title {
+  font-size: clamp(2.2rem, 5vw, 4rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: #fff;
+  line-height: 1.1;
+  margin-bottom: 20px;
+}
+
+.blogify-cta-subtitle {
+  font-size: 1.1rem;
+  color: rgba(226,232,240,0.55);
+  margin-bottom: 48px;
+  line-height: 1.7;
+}
+
+.blogify-cta-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ---- FOOTER ---- */
+.blogify-footer {
+  position: relative;
+  z-index: 10;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 40px 24px;
+}
+
+.blogify-footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.blogify-footer-copy {
+  color: rgba(226,232,240,0.35);
+  font-size: 0.85rem;
+}
+
+/* ---- KEYFRAME ANIMATIONS ---- */
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scrollBounce {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(10px); opacity: 0.3; }
+}
